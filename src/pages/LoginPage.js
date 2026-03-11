@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { logAction, ACTIONS } from '../lib/audit'
 
 export default function LoginPage() {
   const { signIn, resetPassword } = useAuth()
