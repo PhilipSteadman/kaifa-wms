@@ -41,18 +41,25 @@ function UserModal({ onClose, onSaved, editUser = null }) {
       await logAction(currentUser?.id, ACTIONS.USER_UPDATED, editUser.email, `Role changed to ${form.role}`)
       toast.success('User updated')
     } else {
-      // Invite new user via Supabase Auth
-      const { error } = await supabase.auth.admin.inviteUserByEmail(form.email, {
-        data: { display_name: form.display_name, role: form.role }
+      // Store role info so it's applied when they first sign up
+      await supabase.from('pending_invites').upsert({
+        email: form.email,
+        display_name: form.display_name,
+        role: form.role,
+      }, { onConflict: 'email' })
+
+      // Send a magic link — user clicks it and lands straight in the app
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: form.email,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: window.location.origin,
+          data: { display_name: form.display_name, role: form.role },
+        }
       })
-      if (error) {
-        // Fallback: just create the profile record and instruct them to sign up
-        toast.error('Could not send invite email — user may need to sign up manually at your app URL.')
-        setSaving(false)
-        return
-      }
+      if (otpError) { toast.error(otpError.message); setSaving(false); return }
       await logAction(currentUser?.id, ACTIONS.USER_CREATED, form.email, `New ${form.role} user invited`)
-      toast.success(`Invite sent to ${form.email}`)
+      toast.success(`Magic link sent to ${form.email} — they click it to access the system. No password needed.`, { duration: 7000 })
     }
 
     setSaving(false)
