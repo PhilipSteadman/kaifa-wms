@@ -5,7 +5,6 @@ import { logAction, ACTIONS } from '../lib/audit'
 import toast from 'react-hot-toast'
 import { format, differenceInDays } from 'date-fns'
 
-const PRODUCTS = ['UK Charger','CN Charger','Power Bank','EV Module','Solar Unit','Battery Pack','Inverter']
 const STATUS_MAP = {
   in_stock:        { cls: 'tag-green',  label: 'IN STOCK' },
   part_despatched: { cls: 'tag-yellow', label: 'PART DESP.' },
@@ -33,6 +32,13 @@ const DaysBadge = ({ receiveDate }) => {
 function StockModal({ onClose, onSaved, editRecord = null }) {
   const { user } = useAuth()
   const [saving, setSaving] = useState(false)
+  const FALLBACK_PRODUCTS = ['UK Charger','CN Charger','Power Bank','EV Module','Solar Unit','Battery Pack','Inverter']
+  const [products, setProducts] = useState(FALLBACK_PRODUCTS)
+  useEffect(() => {
+    supabase.from('products').select('name').order('name').then(({ data, error }) => {
+      if (!error && data && data.length > 0) setProducts(data.map(p => p.name))
+    })
+  }, [])
   const blank = { jade_reference:'',customer_po:'',product:'',stock_amount:'',carton_amount:'',pallet_amount:'',weight_kg:'',dimensions_mm:'',receive_date:format(new Date(),'yyyy-MM-dd'),warehouse_location:'',pallet_numbers:'',carton_numbers:'',billing:'uk',delivery_instructions:'',internal_notes:'' }
   const [form, setForm] = useState(editRecord ? { ...blank, ...editRecord, receive_date: editRecord.receive_date || format(new Date(),'yyyy-MM-dd') } : blank)
   const set = (k,v) => setForm(f => ({...f,[k]:v}))
@@ -67,7 +73,7 @@ function StockModal({ onClose, onSaved, editRecord = null }) {
           <div className="form-grid">
             <div className="field-group"><label className="field-label">JADE Reference *</label><input className="field-input" value={form.jade_reference} onChange={e=>set('jade_reference',e.target.value)} placeholder="e.g. JADE-2024-0892" /></div>
             <div className="field-group"><label className="field-label">Customer PO Number</label><input className="field-input" value={form.customer_po} onChange={e=>set('customer_po',e.target.value)} placeholder="e.g. PO-8822" /></div>
-            <div className="field-group"><label className="field-label">Product *</label><select className="field-select" value={form.product} onChange={e=>set('product',e.target.value)}><option value="">Select product…</option>{PRODUCTS.map(p=><option key={p} value={p}>{p}</option>)}</select></div>
+            <div className="field-group"><label className="field-label">Product *</label><select className="field-select" value={form.product} onChange={e=>set('product',e.target.value)}><option value="">Select product…</option>{products.map(p=><option key={p} value={p}>{p}</option>)}</select></div>
             <div className="field-group"><label className="field-label">Receive Date *</label><input className="field-input" type="date" value={form.receive_date} onChange={e=>set('receive_date',e.target.value)} /></div>
           </div>
           <div className="form-section">QUANTITIES &amp; DIMENSIONS</div>
@@ -239,15 +245,23 @@ function StockDetailModal({ stock, onClose, onEdit, onSplit, isReadOnly }) {
 export default function StockPage() {
   const { isReadOnly } = useAuth()
   const [stock, setStock] = useState([])
+  const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterBilling, setFilterBilling] = useState('all')
   const [filterProduct, setFilterProduct] = useState('all')
   const [search, setSearch] = useState('')
+  const [products, setProducts] = useState([])
   const [showAdd, setShowAdd] = useState(false)
   const [editRecord, setEditRecord] = useState(null)
   const [splitRecord, setSplitRecord] = useState(null)
   const [detailRecord, setDetailRecord] = useState(null)
+
+  useEffect(() => {
+    supabase.from('products').select('name').order('name').then(({ data }) => {
+      if (data && data.length > 0) setProducts(data.map(p => p.name))
+    })
+  }, [])
 
   const loadStock = useCallback(async () => {
     setLoading(true)
@@ -262,6 +276,14 @@ export default function StockPage() {
   }, [filterStatus,filterBilling,filterProduct])
 
   useEffect(()=>{loadStock()},[loadStock])
+
+  useEffect(()=>{
+    supabase.from('products').select('*').order('name').then(({data}) => {
+      if (data && data.length > 0) setProducts(data)
+      else setProducts([{name:'UK Charger'},{name:'CN Charger'},{name:'Power Bank'},{name:'EV Module'},{name:'Solar Unit'},{name:'Battery Pack'},{name:'Inverter'}])
+    })
+  },[])
+
 
   const filtered = stock.filter(s => {
     if (!search) return true
@@ -292,7 +314,7 @@ export default function StockPage() {
         <input className="field-input" style={{width:240,padding:'7px 12px',fontSize:13}} placeholder="Search JADE, Job No., PO, product…" value={search} onChange={e=>setSearch(e.target.value)} />
         <select className="filter-select" value={filterProduct} onChange={e=>setFilterProduct(e.target.value)}>
           <option value="all">All Products</option>
-          {PRODUCTS.map(p=><option key={p} value={p}>{p}</option>)}
+          {products.map(p=><option key={p} value={p}>{p}</option>)}
         </select>
         <select className="filter-select" value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
           <option value="all">All Status</option>
@@ -361,8 +383,8 @@ export default function StockPage() {
         )}
       </div>
 
-      {showAdd&&<StockModal onClose={()=>setShowAdd(false)} onSaved={loadStock}/>}
-      {editRecord&&<StockModal onClose={()=>setEditRecord(null)} onSaved={loadStock} editRecord={editRecord}/>}
+      {showAdd&&<StockModal onClose={()=>setShowAdd(false)} onSaved={loadStock} products={products}/>}
+      {editRecord&&<StockModal onClose={()=>setEditRecord(null)} onSaved={loadStock} editRecord={editRecord} products={products}/>}
       {splitRecord&&<SplitModal stock={splitRecord} onClose={()=>setSplitRecord(null)} onSaved={loadStock}/>}
       {detailRecord&&<StockDetailModal stock={detailRecord} onClose={()=>setDetailRecord(null)} onEdit={s=>{setDetailRecord(null);setEditRecord(s)}} onSplit={s=>{setDetailRecord(null);setSplitRecord(s)}} isReadOnly={isReadOnly}/>}
     </div>
