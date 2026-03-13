@@ -47,7 +47,9 @@ function StockModal({ onClose, onSaved, editRecord = null }) {
   async function handleSave() {
     if (!form.jade_reference || !form.product || !form.receive_date) { toast.error('JADE reference, product and receive date are required'); return }
     setSaving(true)
-    const payload = { ...form, stock_amount:parseInt(form.stock_amount)||0, carton_amount:parseInt(form.carton_amount)||0, pallet_amount:parseInt(form.pallet_amount)||0, weight_kg:parseFloat(form.weight_kg)||null, created_by:user?.id }
+    // Strip UI-only display flags before saving
+    const { _isParent, _isChild, ...cleanForm } = form
+    const payload = { ...cleanForm, stock_amount:parseInt(form.stock_amount)||0, carton_amount:parseInt(form.carton_amount)||0, pallet_amount:parseInt(form.pallet_amount)||0, weight_kg:parseFloat(form.weight_kg)||null, created_by:user?.id }
     let error
     if (editRecord) {
       ;({error} = await supabase.from('stock').update(payload).eq('id',editRecord.id))
@@ -381,7 +383,7 @@ export default function StockPage() {
       {showAdd&&<StockModal onClose={()=>setShowAdd(false)} onSaved={loadStock} products={products}/>}
       {editRecord&&<StockModal onClose={()=>setEditRecord(null)} onSaved={loadStock} editRecord={editRecord} products={products}/>}
       {splitRecord&&<SplitModal stock={splitRecord} onClose={()=>setSplitRecord(null)} onSaved={loadStock}/>}
-      {detailRecord&&<StockDetailModal stock={detailRecord} onClose={()=>setDetailRecord(null)} onEdit={s=>{setDetailRecord(null);setEditRecord(s)}} onSplit={s=>{setDetailRecord(null);setSplitRecord(s)}} isReadOnly={isReadOnly}/>}
+      {detailRecord&&<StockDetailModal stock={detailRecord} onClose={()=>setDetailRecord(null)} onEdit={s=>{setDetailRecord(null);const{_isParent,_isChild,...clean}=s;setEditRecord(clean)}} onSplit={s=>{setDetailRecord(null);const{_isParent:_,_isChild:__,...clean}=s;setSplitRecord(clean)}} isReadOnly={isReadOnly}/>}
     </div>
   )
 }
