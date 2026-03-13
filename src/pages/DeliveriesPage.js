@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { logAction, ACTIONS } from '../lib/audit'
 import toast from 'react-hot-toast'
 import { format, isToday, isTomorrow, isPast, parseISO } from 'date-fns'
+import PodUploader from '../components/PodUploader'
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const STATUS_MAP = {
@@ -187,6 +188,11 @@ function ScheduleModal({ onClose, onSaved, editRecord = null }) {
             <label className="field-label">Delivery Instructions</label>
             <textarea className="field-input" rows={2} value={form.delivery_instructions} onChange={e=>set('delivery_instructions',e.target.value)} placeholder="Any specific instructions for this delivery…" />
           </div>
+          {editRecord && (
+            <div style={{borderTop:'1px solid var(--border)',paddingTop:16,marginTop:4}}>
+              <PodUploader stockId={editRecord.id} stockRef={editRecord.jade_reference} isReadOnly={false}/>
+            </div>
+          )}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
