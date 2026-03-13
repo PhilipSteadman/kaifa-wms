@@ -38,7 +38,7 @@ function CreateInvoiceModal({ onClose, onSaved }) {
   const [saving, setSaving] = useState(false)
   const [loadingStock, setLoadingStock] = useState(false)
 
-  useEffect(() => { loadSetup() }, [billing])
+  useEffect(() => { loadSetup() }, [billing, loadSetup]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadSetup() {
     setLoadingStock(true)
@@ -119,7 +119,18 @@ function CreateInvoiceModal({ onClose, onSaved }) {
     if (invErr) { toast.error(invErr.message); setSaving(false); return }
 
     // Insert invoice lines
-    const lineRows = lines.map(l => ({ invoice_id: inv.id, ...l }))
+    const lineRows = lines.map(l => ({
+      invoice_id: inv.id,
+      stock_id: l.stock_id,
+      days_stored: l.days_stored || 0,
+      chargeable_days: l.chargeable_days || 0,
+      storage_charge: l.storage_charge || 0,
+      handling_in_charge: l.handling_in_charge || 0,
+      handling_out_charge: l.handling_out_charge || 0,
+      delivery_charge: l.delivery_charge || 0,
+      packing_charge: l.packing_charge || 0,
+      line_total: l.line_total || 0,
+    }))
     const { error: lineErr } = await supabase.from('invoice_lines').insert(lineRows)
     if (lineErr) { toast.error(lineErr.message); setSaving(false); return }
 
