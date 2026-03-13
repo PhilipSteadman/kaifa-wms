@@ -246,22 +246,22 @@ function StockDetailModal({ stock, onClose, onEdit, onSplit, isReadOnly }) {
 
 export default function StockPage() {
   const { isReadOnly } = useAuth()
+  const FALLBACK_PRODUCTS = ['UK Charger','CN Charger','Power Bank','EV Module','Solar Unit','Battery Pack','Inverter']
   const [stock, setStock] = useState([])
-  const [products, setProducts] = useState([])
+  const [products, setProducts] = useState(FALLBACK_PRODUCTS)
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterBilling, setFilterBilling] = useState('all')
   const [filterProduct, setFilterProduct] = useState('all')
   const [search, setSearch] = useState('')
-  const [products, setProducts] = useState([])
   const [showAdd, setShowAdd] = useState(false)
   const [editRecord, setEditRecord] = useState(null)
   const [splitRecord, setSplitRecord] = useState(null)
   const [detailRecord, setDetailRecord] = useState(null)
 
   useEffect(() => {
-    supabase.from('products').select('name').order('name').then(({ data }) => {
-      if (data && data.length > 0) setProducts(data.map(p => p.name))
+    supabase.from('products').select('name').order('name').then(({ data, error }) => {
+      if (!error && data && data.length > 0) setProducts(data.map(p => p.name))
     })
   }, [])
 
@@ -278,13 +278,6 @@ export default function StockPage() {
   }, [filterStatus,filterBilling,filterProduct])
 
   useEffect(()=>{loadStock()},[loadStock])
-
-  useEffect(()=>{
-    supabase.from('products').select('*').order('name').then(({data}) => {
-      if (data && data.length > 0) setProducts(data)
-      else setProducts([{name:'UK Charger'},{name:'CN Charger'},{name:'Power Bank'},{name:'EV Module'},{name:'Solar Unit'},{name:'Battery Pack'},{name:'Inverter'}])
-    })
-  },[])
 
 
   const filtered = stock.filter(s => {
