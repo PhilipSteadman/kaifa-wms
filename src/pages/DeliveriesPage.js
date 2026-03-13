@@ -42,12 +42,11 @@ function ScheduleModal({ onClose, onSaved, editRecord = null }) {
     delivery_address_id: editRecord.delivery_address_id || '',
     branch_id: editRecord.branch_id || '',
     booking_reference: editRecord.booking_reference || '',
-    hawb_number: editRecord.hawb_number || '',
     delivery_instructions: editRecord.delivery_instructions || '',
   } : {
     stock_id: '', delivery_date: format(new Date(),'yyyy-MM-dd'),
     customer_id: '', delivery_address_id: '', branch_id: '',
-    booking_reference: '', hawb_number: '', delivery_instructions: '',
+    booking_reference: '', delivery_instructions: '',
   })
   const set = (k,v) => setForm(f=>({...f,[k]:v}))
 
@@ -84,7 +83,6 @@ function ScheduleModal({ onClose, onSaved, editRecord = null }) {
       delivery_address_id: form.delivery_address_id || null,
       branch_id: form.branch_id || null,
       booking_reference: form.booking_reference || null,
-      hawb_number: form.hawb_number || null,
       delivery_instructions: form.delivery_instructions || null,
       status: 'part_despatched',
     }).eq('id', form.stock_id)
@@ -179,10 +177,7 @@ function ScheduleModal({ onClose, onSaved, editRecord = null }) {
                 {branches.map(b=><option key={b.id} value={b.id}>{b.name}{b.location?` — ${b.location}`:''}</option>)}
               </select>
             </div>
-            <div className="field-group">
-              <label className="field-label">HAWB Number</label>
-              <input className="field-input" value={form.hawb_number} onChange={e=>set('hawb_number',e.target.value)} placeholder="Optional" />
-            </div>
+
           </div>
           <div className="field-group">
             <label className="field-label">Delivery Instructions</label>
