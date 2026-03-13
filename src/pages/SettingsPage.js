@@ -99,8 +99,15 @@ function AddressModal({ address, onClose, onSaved }) {
   async function handleSave() {
     if (!form.label || !form.address_line1 || !form.city) { toast.error('Label, address and city are required'); return }
     setSaving(true)
-    const { country, ...formWithoutCountry } = form
-    const payload = { ...formWithoutCountry, max_delivery_cap: parseFloat(form.max_delivery_cap)||180, customer_id: form.customer_id||null }
+    const payload = {
+      label: form.label,
+      address_line1: form.address_line1,
+      address_line2: form.address_line2 || null,
+      city: form.city,
+      postcode: form.postcode || null,
+      max_delivery_cap: parseFloat(form.max_delivery_cap)||180,
+      customer_id: form.customer_id||null,
+    }
     let error
     if (address) {
       ;({error} = await supabase.from('delivery_addresses').update(payload).eq('id', address.id))
@@ -200,17 +207,20 @@ function DeliveryAddressesTab() {
 function CustomerModal({ customer, onClose, onSaved }) {
   const { user } = useAuth()
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ name: customer?.name||'', contact_name: customer?.contact_name||'', contact_email: customer?.contact_email||'', contact_phone: customer?.contact_phone||'', notes: customer?.notes||'' })
+  const [form, setForm] = useState({ name: customer?.name||'', billing: customer?.billing||'uk' })
   const set = (k,v) => setForm(f=>({...f,[k]:v}))
 
   async function handleSave() {
     if (!form.name) { toast.error('Customer name is required'); return }
     setSaving(true)
+    // Only send columns that exist in the customers table
+    const { contact_name, contact_email, contact_phone, notes, ...baseForm } = form
+    const payload = { name: form.name, billing: form.billing }
     let error
     if (customer) {
-      ;({error} = await supabase.from('customers').update(form).eq('id',customer.id))
+      ;({error} = await supabase.from('customers').update(payload).eq('id',customer.id))
     } else {
-      ;({error} = await supabase.from('customers').insert(form))
+      ;({error} = await supabase.from('customers').insert(payload))
     }
     if (error) { toast.error(error.message); setSaving(false); return }
     await logAction(user?.id, ACTIONS.SETTINGS_CHANGED, 'customers', `Customer ${customer?'updated':'added'}: ${form.name}`)
@@ -227,12 +237,12 @@ function CustomerModal({ customer, onClose, onSaved }) {
         </div>
         <div className="modal-body">
           <Field label="Customer Name *"><input className="field-input" value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. Kaifa Technology" /></Field>
-          <div className="form-grid">
-            <Field label="Contact Name"><input className="field-input" value={form.contact_name} onChange={e=>set('contact_name',e.target.value)} placeholder="Full name" /></Field>
-            <Field label="Contact Email"><input className="field-input" type="email" value={form.contact_email} onChange={e=>set('contact_email',e.target.value)} placeholder="email@company.com" /></Field>
-            <Field label="Contact Phone"><input className="field-input" value={form.contact_phone} onChange={e=>set('contact_phone',e.target.value)} placeholder="+44 …" /></Field>
-          </div>
-          <Field label="Notes"><textarea className="field-input" rows={2} value={form.notes} onChange={e=>set('notes',e.target.value)} placeholder="Any notes about this customer…" /></Field>
+          <Field label="Billing">
+            <select className="field-select" value={form.billing} onChange={e=>set('billing',e.target.value)}>
+              <option value="uk">UK</option>
+              <option value="china">China</option>
+            </select>
+          </Field>
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
@@ -266,14 +276,12 @@ function CustomersTab() {
       {loading ? <div style={{padding:24,textAlign:'center',color:'var(--text-2)',fontFamily:'JetBrains Mono',fontSize:13}}>Loading…</div>
       : customers.length===0 ? <div className="alert alert-info">No customers yet. Add customers to link deliveries and invoices.</div>
       : <div className="table-wrap"><table className="data-table">
-          <thead><tr><th>Name</th><th>Contact</th><th>Email</th><th>Phone</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Billing</th><th></th></tr></thead>
           <tbody>
             {customers.map(c=>(
               <tr key={c.id}>
                 <td className="bold">{c.name}</td>
-                <td style={{fontSize:12}}>{c.contact_name||<span style={{color:'var(--text-3)'}}>—</span>}</td>
-                <td className="mono-sm">{c.contact_email||<span style={{color:'var(--text-3)'}}>—</span>}</td>
-                <td className="mono-sm">{c.contact_phone||<span style={{color:'var(--text-3)'}}>—</span>}</td>
+                <td><span className={`tag ${c.billing==='china'?'tag-red':'tag-blue'}`}>{c.billing?.toUpperCase()}</span></td>
                 <td><button className="btn btn-sm btn-secondary" onClick={()=>setEditCust(c)}>Edit</button></td>
               </tr>
             ))}
@@ -289,17 +297,19 @@ function CustomersTab() {
 function BranchModal({ branch, onClose, onSaved }) {
   const { user } = useAuth()
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ name: branch?.name||'', location: branch?.location||'', contact_email: branch?.contact_email||'', contact_phone: branch?.contact_phone||'' })
+  const [form, setForm] = useState({ name: branch?.name||'', location: branch?.location||'' })
   const set = (k,v) => setForm(f=>({...f,[k]:v}))
 
   async function handleSave() {
     if (!form.name) { toast.error('Branch name is required'); return }
     setSaving(true)
+    // Only send columns that exist in branches table
+    const payload = { name: form.name, location: form.location || null }
     let error
     if (branch) {
-      ;({error} = await supabase.from('branches').update(form).eq('id',branch.id))
+      ;({error} = await supabase.from('branches').update(payload).eq('id',branch.id))
     } else {
-      ;({error} = await supabase.from('branches').insert(form))
+      ;({error} = await supabase.from('branches').insert(payload))
     }
     if (error) { toast.error(error.message); setSaving(false); return }
     await logAction(user?.id, ACTIONS.SETTINGS_CHANGED, 'branches', `Branch ${branch?'updated':'added'}: ${form.name}`)
@@ -318,8 +328,7 @@ function BranchModal({ branch, onClose, onSaved }) {
           <div className="form-grid">
             <Field label="Branch Name *"><input className="field-input" value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. DHL East Midlands" /></Field>
             <Field label="Location"><input className="field-input" value={form.location} onChange={e=>set('location',e.target.value)} placeholder="e.g. Nottingham" /></Field>
-            <Field label="Contact Email"><input className="field-input" type="email" value={form.contact_email} onChange={e=>set('contact_email',e.target.value)} placeholder="branch@dhl.com" /></Field>
-            <Field label="Contact Phone"><input className="field-input" value={form.contact_phone} onChange={e=>set('contact_phone',e.target.value)} placeholder="+44 …" /></Field>
+
           </div>
         </div>
         <div className="modal-footer">
@@ -354,14 +363,13 @@ function BranchesTab() {
       {loading ? <div style={{padding:24,textAlign:'center',color:'var(--text-2)',fontFamily:'JetBrains Mono',fontSize:13}}>Loading…</div>
       : branches.length===0 ? <div className="alert alert-info">No branches yet. Add branches to assign deliveries to specific DHL locations.</div>
       : <div className="table-wrap"><table className="data-table">
-          <thead><tr><th>Name</th><th>Location</th><th>Email</th><th>Phone</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Location</th><th></th></tr></thead>
           <tbody>
             {branches.map(b=>(
               <tr key={b.id}>
                 <td className="bold">{b.name}</td>
                 <td style={{fontSize:12}}>{b.location||<span style={{color:'var(--text-3)'}}>—</span>}</td>
-                <td className="mono-sm">{b.contact_email||<span style={{color:'var(--text-3)'}}>—</span>}</td>
-                <td className="mono-sm">{b.contact_phone||<span style={{color:'var(--text-3)'}}>—</span>}</td>
+
                 <td><button className="btn btn-sm btn-secondary" onClick={()=>setEditBranch(b)}>Edit</button></td>
               </tr>
             ))}
