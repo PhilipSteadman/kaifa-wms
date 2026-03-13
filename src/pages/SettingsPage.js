@@ -88,8 +88,8 @@ function AddressModal({ address, onClose, onSaved }) {
   const { user } = useAuth()
   const [saving, setSaving] = useState(false)
   const [customers, setCustomers] = useState([])
-  const blank = { label:'', customer_id:'', address_line1:'', address_line2:'', city:'', postcode:'', country:'GB', max_delivery_cap:'180' }
-  const [form, setForm] = useState(address ? { ...blank, ...address, max_delivery_cap: address.max_delivery_cap || '180' } : blank)
+  const blank = { label:'', customer_id:'', address_line1:'', address_line2:'', city:'', postcode:'', max_delivery_cap:'180' }
+  const [form, setForm] = useState(address ? { ...blank, ...address, max_delivery_cap: address.max_delivery_cap || '180', country: undefined } : blank)
   const set = (k,v) => setForm(f=>({...f,[k]:v}))
 
   useEffect(() => {
@@ -99,7 +99,8 @@ function AddressModal({ address, onClose, onSaved }) {
   async function handleSave() {
     if (!form.label || !form.address_line1 || !form.city) { toast.error('Label, address and city are required'); return }
     setSaving(true)
-    const payload = { ...form, max_delivery_cap: parseFloat(form.max_delivery_cap)||180, customer_id: form.customer_id||null }
+    const { country, ...formWithoutCountry } = form
+    const payload = { ...formWithoutCountry, max_delivery_cap: parseFloat(form.max_delivery_cap)||180, customer_id: form.customer_id||null }
     let error
     if (address) {
       ;({error} = await supabase.from('delivery_addresses').update(payload).eq('id', address.id))
@@ -134,7 +135,6 @@ function AddressModal({ address, onClose, onSaved }) {
             <Field label="Postcode"><input className="field-input" value={form.postcode} onChange={e=>set('postcode',e.target.value)} placeholder="e.g. EC1A 1BB" /></Field>
           </div>
           <div className="form-grid">
-            <Field label="Country"><input className="field-input" value={form.country} onChange={e=>set('country',e.target.value)} placeholder="GB" /></Field>
             <Field label="Max Delivery Cap (£)">
               <div style={{position:'relative'}}>
                 <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'var(--text-2)',fontFamily:'JetBrains Mono',fontSize:13}}>£</span>
