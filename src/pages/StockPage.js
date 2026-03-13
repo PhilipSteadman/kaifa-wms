@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { logAction, ACTIONS } from '../lib/audit'
 import toast from 'react-hot-toast'
 import { format, differenceInDays } from 'date-fns'
+import PodUploader from '../components/PodUploader'
 
 const STATUS_MAP = {
   in_stock:        { cls: 'tag-green',  label: 'IN STOCK' },
@@ -230,6 +231,7 @@ function StockDetailModal({ stock, onClose, onEdit, onSplit, isReadOnly }) {
           {stock.carton_numbers&&<div style={{marginBottom:10}}><div style={{fontFamily:'JetBrains Mono',fontSize:10,color:'var(--text-3)',marginBottom:3}}>CARTON NUMBERS</div><div style={{fontSize:13,color:'var(--text-1)'}}>{stock.carton_numbers}</div></div>}
           {stock.delivery_instructions&&<div style={{background:'var(--bg-3)',border:'1px solid var(--border)',borderRadius:3,padding:'10px 14px',marginBottom:10}}><div style={{fontFamily:'JetBrains Mono',fontSize:10,color:'var(--text-3)',marginBottom:4}}>DELIVERY INSTRUCTIONS</div><div style={{fontSize:13,color:'var(--text-1)'}}>{stock.delivery_instructions}</div></div>}
           {stock.internal_notes&&<div style={{background:'rgba(232,160,32,0.06)',border:'1px solid rgba(232,160,32,0.2)',borderRadius:3,padding:'10px 14px',marginBottom:16}}><div style={{fontFamily:'JetBrains Mono',fontSize:10,color:'var(--accent)',marginBottom:4}}>INTERNAL NOTES (NOT ON INVOICES)</div><div style={{fontSize:13,color:'var(--text-1)'}}>{stock.internal_notes}</div></div>}
+          <div style={{borderTop:'1px solid var(--border)',paddingTop:16,marginTop:4}}><PodUploader stockId={stock.id} stockRef={stock.jade_reference} isReadOnly={isReadOnly}/></div>
           {splits.length>0&&<><div className="form-section" style={{marginTop:0}}>SPLIT HISTORY</div><div className="table-wrap"><table className="data-table"><thead><tr><th>Split Ref</th><th>Type</th><th>Pallets</th><th>Cartons</th><th>Status</th></tr></thead><tbody>{splits.map(s=><tr key={s.id}><td className="bold mono-sm">{s.jade_reference}</td><td><span className={`tag ${s.split_type==='pallet'?'tag-orange':'tag-blue'}`}>{s.split_type?.toUpperCase()}</span></td><td>{s.pallet_amount||'—'}</td><td>{s.carton_amount||'—'}</td><td><Tag status={s.status}/></td></tr>)}</tbody></table></div></>}
         </div>
         <div className="modal-footer">
